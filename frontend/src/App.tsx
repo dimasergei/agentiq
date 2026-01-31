@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, CheckCircle2, Zap, Shield, BarChart3, Globe, Play, Bot, Brain, Network, Cpu, Activity, Users, MessageSquare, Lightbulb, Target } from 'lucide-react';
+import { mockExecuteAgentTask, type AgentExecutionPlan } from './mock-agents';
 
 interface Agent {
   id: string;
@@ -73,9 +74,43 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [isCollaborating, agents]);
 
+  const [executionPlan, setExecutionPlan] = useState<AgentExecutionPlan | null>(null);
+  const [currentTask, setCurrentTask] = useState('');
+  const [isExecuting, setIsExecuting] = useState(false);
+
+  const executeTask = async (task: string, agentRole: string = 'assistant') => {
+    setCurrentTask(task);
+    setIsExecuting(true);
+    setExecutionPlan(null);
+
+    try {
+      const plan = await mockExecuteAgentTask(task, agentRole);
+      setExecutionPlan(plan);
+      
+      // Simulate step-by-step execution
+      for (const step of plan.steps) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Update thought process with current step
+        const thought: ThoughtProcess = {
+          agentId: 'system',
+          agentName: `${agentRole} Agent`,
+          thought: `Step ${step.step}: ${step.action} - ${step.description}`,
+          timestamp: new Date()
+        };
+        setThoughtProcesses(prev => [thought, ...prev].slice(0, 5));
+      }
+    } catch (error) {
+      console.error('Task execution failed:', error);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
   const startCollaboration = () => {
     setIsCollaborating(true);
     setThoughtProcesses([]);
+    // Execute a sample task
+    executeTask('Analyze system performance and optimize resource allocation', 'analyst');
   };
 
   const stopCollaboration = () => {
